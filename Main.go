@@ -1,23 +1,23 @@
 package main
 
 import (
-    "encoding/json"
+    "os"
     "fmt"
-    "io/ioutil"
     "log"
-    "net/http"
-    "strings"
     "time"
-		"os"
-//		"github.com/Syfaro/telegram-bot-api"
+    "strings"
+    "net/url"
+    "net/http"
+    "io/ioutil"
+    "encoding/json"
+    "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var ()
 
 const (
     timeout = time.Second * 3
-    url     = "https://api-invest.tinkoff.ru/openapi/sandbox/sandbox/register"
-		ChatID 	= 318841796
+    tin_url = "https://api-invest.tinkoff.ru/openapi/sandbox/sandbox/register"
 )
 
 
@@ -25,15 +25,18 @@ type error interface {
     Error() string
 }
 
-// TO DO. the problem with proxy
-/*
 func telegram(message string) {
+    var (
+      ChatID = 318841796 //privat chat gavalenik
+      apiEndpoint = "https://api.telegram.org/bot"
+    )
 
-		proxyUrl, err := url.Parse("http://169.57.1.85:80")
-		myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+    //set proxy
+    proxyUrl, err := url.Parse("http://185.25.207.165:3128")
+    myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 
 		// read token from a file
-		data, err := ioutil.ReadFile("telebot_token")
+		tlg_tkn, err := ioutil.ReadFile("telebot_token")
 		if err != nil {
 				if strings.Contains(err.Error(), "no such file or directory") == true {
 						fmt.Println("File with telegram bot token isn't exist")
@@ -43,21 +46,17 @@ func telegram(message string) {
 		}
 
 		// bot initialization
-		//bot, err := tgbotapi.NewBotAPI(strings.TrimSpace(string(data)))
-		bot, err = tgbotapi.NewBotAPIWithClient(strings.TrimSpace(string(data)),"https://api.telegram.org/bot%s/%s", myClient)
+		tele_bot, err := tgbotapi.NewBotAPIWithClient(strings.TrimSpace(string(tlg_tkn)), apiEndpoint+"%s/%s", myClient)
 		if err != nil {
-				//log.Panic(err)
-				fmt.Println("Error!", err)
+				log.Panic(err)
 		}
+    tele_bot.Debug = true
 
-		bot.Debug = true
-		msg := tgbotapi.NewMessage(ChatID, message)
-		bot.Send(msg)
+		tele_bot.Send(tgbotapi.NewMessage(int64(ChatID), message))
 }
-*/
 
 func get_token_from_file() string {
-		data, err := ioutil.ReadFile("token")
+		tin_tkn, err := ioutil.ReadFile("token")
 		if err != nil {
 				if strings.Contains(err.Error(), "no such file or directory") == true {
 						fmt.Println("You have to put file 'token' in catalog 'lock_stock_and_two_smoking_hands'")
@@ -68,7 +67,7 @@ func get_token_from_file() string {
 				fmt.Println("The programme execution has been stopped")
 				os.Exit(0)
 		}
-		return strings.TrimSpace(string(data))
+		return strings.TrimSpace(string(tin_tkn))
 }
 
 func register(token string){
@@ -78,7 +77,7 @@ func register(token string){
 				Timeout: timeout,
 		}
 
-		req, err := http.NewRequest("POST", url, nil)
+		req, err := http.NewRequest("POST", tin_url, nil)
 		if err != nil {
 				log.Fatalf("Can't create register http request: %s", err)
 		}
@@ -92,7 +91,7 @@ func register(token string){
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-				log.Fatalf("Register, bad response code '%s' from '%s'", resp.Status, url)
+				log.Fatalf("Register, bad response code '%s' from '%s'", resp.Status, tin_url)
 		}
 
 		respBody, err := ioutil.ReadAll(resp.Body)
@@ -118,8 +117,20 @@ func register(token string){
 		fmt.Println("Register succeed")
 }
 
+
+//MAIN
 func main() {
-//		telegram ("hello")
+    telegram ("hello") //sending message via telegram bot
     register(get_token_from_file())
 		fmt.Println("the end")
 }
+
+/*
+TO DO
+1 - quite message to telegram
+2 - don't stop execution cause proxy problem
+3 - let forward with general tin apiEndpoint
+4 - to find stable proxy
+5 - sending message to telegram show up the message in console. need to turn off console
+
+*/
