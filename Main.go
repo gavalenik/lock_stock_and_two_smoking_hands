@@ -1,7 +1,6 @@
 package main
 
 import (
-    "os"
     "fmt"
     "log"
     "time"
@@ -13,7 +12,10 @@ import (
     "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-var ()
+var (
+    tele_bot *tgbotapi.BotAPI
+    current_time = time.Now().Format("15:04:05")
+)
 
 const (
     timeout = time.Second * 3
@@ -25,14 +27,9 @@ type error interface {
     Error() string
 }
 
-func telegram(message string) {
-    var (
-      ChatID = 318841796 //privat chat gavalenik
-      apiEndpoint = "https://api.telegram.org/bot"
-    )
-
+func tele_initialization() {
     //set proxy
-    proxyUrl, err := url.Parse("http://185.25.207.165:3128")
+    proxyUrl, err := url.Parse("http://195.154.62.117:5836")
     myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 
 		// read token from a file
@@ -46,13 +43,18 @@ func telegram(message string) {
 		}
 
 		// bot initialization
-		tele_bot, err := tgbotapi.NewBotAPIWithClient(strings.TrimSpace(string(tlg_tkn)), apiEndpoint+"%s/%s", myClient)
+		bot, err := tgbotapi.NewBotAPIWithClient(strings.TrimSpace(string(tlg_tkn)), "https://api.telegram.org/bot%s/%s", myClient)
 		if err != nil {
 				log.Panic(err)
-		}
+    }
+    tele_bot = bot
     tele_bot.Debug = true
+}
 
-		tele_bot.Send(tgbotapi.NewMessage(int64(ChatID), message))
+func telegram(message string) {
+    var ChatID = 318841796 //privat chat gavalenik
+
+    tele_bot.Send(tgbotapi.NewMessage(int64(ChatID), message))
 }
 
 func get_token_from_file() string {
@@ -64,15 +66,12 @@ func get_token_from_file() string {
 				} else {
 						fmt.Println("Error!", err)
 				}
-				fmt.Println("The programme execution has been stopped")
-				os.Exit(0)
+        log.Panic("Critical Error!! The programme execution has been stopped")
 		}
 		return strings.TrimSpace(string(tin_tkn))
 }
 
 func register(token string){
-
-		fmt.Println(token)
 		client := &http.Client{
 				Timeout: timeout,
 		}
@@ -120,7 +119,9 @@ func register(token string){
 
 //MAIN
 func main() {
-    telegram ("hello") //sending message via telegram bot
+    fmt.Println("Start working: "+current_time)
+//    tele_initialization() //telegram bot initialization
+//    telegram ("hello")    //sending message via telegram bot
     register(get_token_from_file())
 		fmt.Println("the end")
 }
@@ -131,6 +132,6 @@ TO DO
 2 - don't stop execution cause proxy problem
 3 - let forward with general tin apiEndpoint
 4 - to find stable proxy
-5 - sending message to telegram show up the message in console. need to turn off console
+5 - sending message to telegram shows up the message in console. need to turn off console
 
 */
