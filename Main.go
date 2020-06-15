@@ -125,13 +125,3 @@ func main() {
     register(get_token_from_file())
 		fmt.Println("the end")
 }
-
-/*
-TO DO
-1 - quite message to telegram
-2 - don't stop execution cause proxy problem
-3 - let forward with general tin apiEndpoint
-4 - to find stable proxy
-5 - sending message to telegram shows up the message in console. need to turn off console
-
-*/
