@@ -4,22 +4,26 @@ import (
     "fmt"
     "log"
     "time"
+//    "reflect"  //fmt.Println(reflect.TypeOf(var))
+    "context"
     "strings"
     "net/url"
     "net/http"
     "io/ioutil"
-    "encoding/json"
+//    "encoding/json"
     "github.com/go-telegram-bot-api/telegram-bot-api"
+    sdk "github.com/TinkoffCreditSystems/invest-openapi-go-sdk"
 )
 
 var (
     tele_bot *tgbotapi.BotAPI
     current_time = time.Now().Format("15:04:05")
+    token = get_token_from_file()
 )
 
 const (
-    timeout = time.Second * 3
-    tin_url = "https://api-invest.tinkoff.ru/openapi/sandbox/sandbox/register"
+    timeout = 5*time.Second
+    general_url = "https://api-invest.tinkoff.ru/openapi/sandbox"
 )
 
 
@@ -70,58 +74,52 @@ func get_token_from_file() string {
 		}
 		return strings.TrimSpace(string(tin_tkn))
 }
+/*
+func getting_broker_accounts(client *sdk.RestClient) {
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
 
-func register(token string){
-		client := &http.Client{
-				Timeout: timeout,
-		}
+    log.Println("Getting all broker's accounts")
+    accounts, err := client.Accounts(ctx)
+    if err != nil {
+      log.Fatalln(err)
+    }
+    //log.Printf("%+v\n", accounts)
 
-		req, err := http.NewRequest("POST", tin_url, nil)
-		if err != nil {
-				log.Fatalf("Can't create register http request: %s", err)
-		}
+    //fmt.Println (accounts)
+    //fmt.Println(reflect.TypeOf(accounts))
+}
+*/
+func getting_all_assets(client *sdk.RestClient) {
 
-		req.Header.Add("Authorization", "Bearer "+token)
-		resp, err := client.Do(req)
-		if err != nil {
-				log.Fatalf("Can't send register request: %s", err)
-		}
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
 
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-				log.Fatalf("Register, bad response code '%s' from '%s'", resp.Status, tin_url)
-		}
-
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-				log.Fatalf("Can't read register response: %s", err)
-		}
-
-		type Register struct {
-				TrackingID string `json:"trackingId"`
-				Status     string `json:"status"`
-		}
-
-		var regResp Register
-		err = json.Unmarshal(respBody, &regResp)
-		if err != nil {
-				log.Fatalf("Can't unmarshal register response: '%s' \nwith error: %s", string(respBody), err)
-		}
-
-		if strings.ToUpper(regResp.Status) != "OK" {
-				log.Fatalf("Register failed, trackingId: '%s'", regResp.TrackingID)
-		}
-
-		fmt.Println("Register succeed")
+    log.Println("Getting all assets")
+    // Метод является совмещеним PositionsPortfolio и CurrenciesPortfolio
+    portfolio, err := client.Portfolio(ctx, sdk.DefaultAccount)
+    if err != nil {
+      log.Fatalln(err)
+    }
+    log.Printf("%+v\n", portfolio) //type sdk.Portfolio
 }
 
 
 //MAIN
 func main() {
-    fmt.Println("Start working: "+current_time)
+    log.Println("Let's get money!")
+
 //    tele_initialization() //telegram bot initialization
 //    telegram ("hello")    //sending message via telegram bot
-    register(get_token_from_file())
-		fmt.Println("the end")
+//    client := sdk.NewSandboxRestClient(token) //client for Sandbox
+    session := sdk.NewRestClient(token) //client for invest platform !!!
+//    getting_broker_accounts(session) //noting helpful, only contract number
+    getting_all_assets(session)
+
+		log.Println("The End")
 }
+
+
+/*TO DO
+need to count unit in response "portfolio" 'getting_all_assets'
+*/
