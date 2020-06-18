@@ -1,6 +1,7 @@
 #tokens
 token
 telebot_token
+yahoo_key
 
 #executive file
 Main
