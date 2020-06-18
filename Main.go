@@ -1,9 +1,11 @@
 package main
 
 import (
+    "os"
     "fmt"
     "log"
     "time"
+    "bufio"
 //    "reflect"  //fmt.Println(reflect.TypeOf(var))
     "context"
     "strings"
@@ -22,6 +24,7 @@ var (
     token = get_token_from_file("token")
     current_USD, current_EUR, current_RUB float64 = 0,0,0
     sp500, us30 float64
+    stocks [20]string
 )
 
 const (
@@ -221,18 +224,64 @@ func balance_difference(client *sdk.RestClient) {
     }
 }
 
+func stock_info_request(client *sdk.RestClient, stocks [20]string) {
+
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
+
+    log.Println("Getting stock info\n")
+
+    for i:=0; i<len(stocks); i++ {
+        if stocks[i] != "" {
+            instruments, err := client.InstrumentByTicker(ctx, stocks[i])
+            if err != nil {
+                log.Fatalln(err)
+            }
+            log.Printf("%+v\n", instruments)
+        } else {
+            break
+        }
+    }
+}
+
+func get_stock_info(client *sdk.RestClient) {
+    var i int = 0
+
+// read stocks from a file
+    file, err := os.Open("stock")
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer file.Close()
+
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+        stocks[i] = scanner.Text()
+        i++
+    }
+
+    stock_info_request(client, stocks)
+
+}
+
 
 //MAIN
 func main() {
     log.Println("Let's get money!\n")
 
     tele_initialization() //telegram bot initialization  //telegram ("hello")   //sending message via telegram bot
-    getting_sp500_nasdaq()
+    //getting_sp500_nasdaq() //it works but we have limit for requests
+
     session := sdk.NewRestClient(token) //client for invest platform !!!      //session := sdk.NewSandboxRestClient(token) //client for Sandbox
 
     //getting_broker_accounts(session) //noting helpful, only contract number
     getting_current_balance(session)
     balance_difference(session)
 
-		log.Println("The End")
+    get_stock_info(session)
+
+    log.Println("The End")
 }
+
+// TODO:
+// add method to get stock price and to buy stocks
