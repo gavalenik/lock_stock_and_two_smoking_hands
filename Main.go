@@ -26,6 +26,7 @@ var (
     current_USD, current_EUR, current_RUB float64 = 0,0,0
     sp500, us30 float64
     stocks [20]string
+    stock_prices [20]float64
 )
 
 const (
@@ -211,6 +212,7 @@ func getting_current_balance(client *sdk.RestClient) {
 
     var msg = "\nHey Bro! You have:\nUSD: "+strconv.FormatFloat(current_USD, 'f', 2, 64)+"\nEUR: "+strconv.FormatFloat(current_EUR, 'f', 2, 64)+"\nRUB: "+strconv.FormatFloat(current_RUB, 'f', 2, 64)+"\n"
     fmt.Println(msg)
+    telegram(msg)
 }
 
 func balance_difference(client *sdk.RestClient) {
@@ -228,29 +230,52 @@ func balance_difference(client *sdk.RestClient) {
         differnce_EUR := old_EUR - current_EUR
         differnce_RUB := old_RUB - current_RUB
 
-        var msg = "Hey Bro! There's a difference between latest and current balances\nYou have:\nUSD: "+strconv.FormatFloat(differnce_USD,'f',2,64)+"\nEUR: "+strconv.FormatFloat(differnce_EUR,'f',2,64)+"\nRUB: "+strconv.FormatFloat(differnce_RUB,'f',2,64)+"\n"
+        var msg = "Hey Bro! There's a difference between latest and current balances\nUSD: "+strconv.FormatFloat(differnce_USD,'f',2,64)+"\nEUR: "+strconv.FormatFloat(differnce_EUR,'f',2,64)+"\nRUB: "+strconv.FormatFloat(differnce_RUB,'f',2,64)+"\n"
         fmt.Println(msg)
         telegram (msg)
 
         balance_time = time.Now().Add(24*time.Hour)
     }
 }
-
+/*
 func stock_info_request(client *sdk.RestClient, stocks [20]string) {
 
     ctx, cancel := context.WithTimeout(context.Background(), timeout)
     defer cancel()
 
-    log.Println("Getting stock info\n")
+    log.Println("Getting stocks info\n")
 
     for i:=0; i<len(stocks); i++ {
         if stocks[i] != "" {
-            instruments, err := client.InstrumentByTicker(ctx, stocks[i])
+            instrument, err := client.InstrumentByFIGI(ctx, stocks[i])
+	          if err != nil {
+		            log.Fatalln(err)
+	          }
+	          log.Printf("%+v\n", instrument)
+        } else {
+            fmt.Printf()
+            break
+        }
+    }
+}
+*/
+
+func get_stock_orderbook(client *sdk.RestClient, stocks [20]string) {
+    var deep int = 10
+
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
+
+    for i:=0; i<len(stocks); i++ {
+        if stocks[i] != "" {
+            orderbook, err := client.Orderbook(ctx, deep, stocks[i])
             if err != nil {
                 log.Fatalln(err)
             }
-            log.Printf("%+v\n", instruments)
+            //log.Printf("%+v\n", orderbook)
+            stock_prices[i] = orderbook.LastPrice
         } else {
+            fmt.Println()
             break
         }
     }
@@ -272,8 +297,8 @@ func get_stock_info(client *sdk.RestClient) {
         i++
     }
 
-    stock_info_request(client, stocks)
-
+    //stock_info_request(client, stocks) //nothing helpfull
+    get_stock_orderbook(client, stocks)
 }
 
 
@@ -289,7 +314,6 @@ func main() {
     //getting_broker_accounts(session) //noting helpful, only contract number
     getting_current_balance(session)
     balance_difference(session)
-
     get_stock_info(session)
 
     log.Println("The End")
