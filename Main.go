@@ -10,7 +10,7 @@ import (
     "context"
     "strings"
     "strconv"
-    "net/url"
+//    "net/url"
     "net/http"
     "io/ioutil"
     "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -21,6 +21,7 @@ var (
     tele_bot *tgbotapi.BotAPI
     current_time = time.Now() //.Format("15:04:05") current_time.Add(24*time.Hour)
     balance_time = current_time.Add(24*time.Hour)
+    index_time = current_time.Add(4*time.Hour)
     token = get_token_from_file("token")
     current_USD, current_EUR, current_RUB float64 = 0,0,0
     sp500, us30 float64
@@ -29,7 +30,6 @@ var (
 
 const (
     timeout = 5*time.Second
-    general_url = "https://api-invest.tinkoff.ru/openapi/sandbox"
 )
 
 
@@ -38,15 +38,18 @@ type error interface {
 }
 
 func tele_initialization() {
+
+// read token from a file
+    tlg_tkn := get_token_from_file("telebot_token")
+/*
 //set proxy
     proxyUrl, err := url.Parse("http://103.235.30.54:8080")
     myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+    bot, err := tgbotapi.NewBotAPIWithClient(tlg_tkn, "https://api.telegram.org/bot%s/%s", myClient)
 
-// read token from a file
-		tlg_tkn := get_token_from_file("telebot_token")
-
+*/
 // bot initialization
-		bot, err := tgbotapi.NewBotAPIWithClient(tlg_tkn, "https://api.telegram.org/bot%s/%s", myClient)
+    bot, err := tgbotapi.NewBotAPI(tlg_tkn)
 		if err != nil {
 				log.Panic(err)
     }
@@ -108,21 +111,30 @@ func get_index_value(info string) (float64, int) {
 }
 
 func getting_sp500_nasdaq() {
-    var response string
-    var split int
 
-    url := "https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/get-quotes?region=US&lang=en&symbols=%255EGSPC%252C%255EDJI%252CBAC%252CKC%253DF%252C002210.KS%252CIWM%252CAMECX"
-  	req, _ := http.NewRequest("GET", url, nil)
-  	req.Header.Add("x-rapidapi-host", "apidojo-yahoo-finance-v1.p.rapidapi.com")
-  	req.Header.Add("x-rapidapi-key", get_token_from_file("yahoo_key"))
+    //get indices once per 6 hours
+    if time.Now().After(index_time) == true {
+        var response string
+        var split int
 
-  	res, _ := http.DefaultClient.Do(req)
-    defer res.Body.Close()
-  	body, _ := ioutil.ReadAll(res.Body)
-    response = string(body)
+        url := "https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/get-quotes?region=US&lang=en&symbols=%255EGSPC%252C%255EDJI%252CBAC%252CKC%253DF%252C002210.KS%252CIWM%252CAMECX"
+      	req, _ := http.NewRequest("GET", url, nil)
+      	req.Header.Add("x-rapidapi-host", "apidojo-yahoo-finance-v1.p.rapidapi.com")
+      	req.Header.Add("x-rapidapi-key", get_token_from_file("yahoo_key"))
 
-    sp500, split = get_index_value(response)
-    us30, split = get_index_value(response[split:len(response)])
+      	res, _ := http.DefaultClient.Do(req)
+        defer res.Body.Close()
+      	body, _ := ioutil.ReadAll(res.Body)
+        response = string(body)
+
+        sp500, split = get_index_value(response)
+        us30, split = get_index_value(response[split:len(response)])
+
+        var msg = "There's indices:\nsp500: "+strconv.FormatFloat(sp500,'f',2,64)+"\nnasdaq: "+strconv.FormatFloat(us30,'f',2,64)+"\n"
+        fmt.Println(msg)
+
+        index_time = time.Now().Add(6*time.Hour)
+      }
 
 }
 
@@ -216,7 +228,7 @@ func balance_difference(client *sdk.RestClient) {
         differnce_EUR := old_EUR - current_EUR
         differnce_RUB := old_RUB - current_RUB
 
-        var msg = "Hey Bro! There's a difference between latest and current balances\nYou have:\nUSD: "+strconv.FormatFloat(differnce_USD, 'f', 2, 64)+"\nEUR: "+strconv.FormatFloat(differnce_EUR, 'f', 2, 64)+"\nRUB: "+strconv.FormatFloat(differnce_RUB, 'f', 2, 64)+"\n"
+        var msg = "Hey Bro! There's a difference between latest and current balances\nYou have:\nUSD: "+strconv.FormatFloat(differnce_USD,'f',2,64)+"\nEUR: "+strconv.FormatFloat(differnce_EUR,'f',2,64)+"\nRUB: "+strconv.FormatFloat(differnce_RUB,'f',2,64)+"\n"
         fmt.Println(msg)
         telegram (msg)
 
@@ -270,7 +282,7 @@ func main() {
     log.Println("Let's get money!\n")
 
     tele_initialization() //telegram bot initialization  //telegram ("hello")   //sending message via telegram bot
-    //getting_sp500_nasdaq() //it works but we have limit for requests
+    getting_sp500_nasdaq() //it works but we have limit for requests
 
     session := sdk.NewRestClient(token) //client for invest platform !!!      //session := sdk.NewSandboxRestClient(token) //client for Sandbox
 
