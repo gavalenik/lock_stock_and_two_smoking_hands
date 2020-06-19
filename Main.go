@@ -316,8 +316,18 @@ func main() {
     balance_difference(session)
     get_stock_info(session)
 
+    // finish
+    var msgf string = "Stocks info\n"
+    for i:=0; i<len(stocks); i++ {
+        if stocks[i] != "" {
+            msgf = msgf+stocks[i]+": "+strconv.FormatFloat(stock_prices[i], 'f', 2, 64)+"\n"
+        } else {
+            break
+        }
+    }
+    log.Println(msgf)
     log.Println("The End")
 }
 
 // TODO:
-// add method to get stock price and to buy stocks
+// add method to buy stocks
