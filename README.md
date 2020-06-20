@@ -9,3 +9,5 @@ go build Main.go
 
 yahoo_finance_api
 https://rapidapi.com/blog/how-to-use-the-yahoo-finance-api/#get-movers
+
+go get github.com/go-telegram-bot-api/telegram-bot-api
